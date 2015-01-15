@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 
-public class TileMap : MonoBehaviour {
+public class TileMap : MonoBehaviour 
+{
 
-	public GameObject selectedUnit;
+	public GameObject selectedUnitIndicator;
+	public GameObject[] units;
+	int selectedUnit = 0;
+	
 
 	public TileType[] tileTypes;
 
@@ -12,18 +16,32 @@ public class TileMap : MonoBehaviour {
 	Node[,] graph;
 
 
-	int mapSizeX = 17;
+	int mapSizeX = 14;
 	int mapSizeY = 10;
 
 	void Start() {
 		// Setup the selectedUnit's variable
-		selectedUnit.GetComponent<Unit>().tileX = (int)selectedUnit.transform.position.x;
-		selectedUnit.GetComponent<Unit>().tileY = (int)selectedUnit.transform.position.y;
-		selectedUnit.GetComponent<Unit>().map = this;
+		foreach(GameObject unit in units)
+		{
+			unit.GetComponent<Unit>().tileX = (int)unit.transform.position.x;
+			unit.GetComponent<Unit>().tileY = (int)unit.transform.position.y;
+			unit.GetComponent<Unit>().map = this;
+		}
 
 		GenerateMapData();
 		GeneratePathfindingGraph();
 		GenerateMapVisual();
+	}
+
+	public void NextTurn() //Button calls next turn
+	{
+		units[selectedUnit].GetComponent<Unit>().MoveNextTile();
+		selectedUnit++;
+		if( selectedUnit == units.Length)
+		{
+			selectedUnit = 0;
+		}
+		selectedUnitIndicator.transform.position = units[selectedUnit].transform.position;
 	}
 
 	void GenerateMapData() {
@@ -79,7 +97,8 @@ public class TileMap : MonoBehaviour {
 
 	}
 
-	void GeneratePathfindingGraph() {
+	void GeneratePathfindingGraph() 
+	{
 		// Initialize the array
 		graph = new Node[mapSizeX,mapSizeY];
 
@@ -137,7 +156,8 @@ public class TileMap : MonoBehaviour {
 		}
 	}
 
-	void GenerateMapVisual() {
+	void GenerateMapVisual() 
+	{
 		for(int x=0; x < mapSizeX; x++) {
 			for(int y=0; y < mapSizeY; y++) {
 				TileType tt = tileTypes[ tiles[x,y] ];
@@ -151,11 +171,13 @@ public class TileMap : MonoBehaviour {
 		}
 	}
 
-	public Vector3 TileCoordToWorldCoord(int x, int y) {
+	public Vector3 TileCoordToWorldCoord(int x, int y) 
+	{
 		return new Vector3(x, y, 0);
 	}
 
-	public bool UnitCanEnterTile(int x, int y) {
+	public bool UnitCanEnterTile(int x, int y) 
+	{
 
 		// We could test the unit's walk/hover/fly type against various
 		// terrain flags here to see if they are allowed to enter the tile.
@@ -163,9 +185,10 @@ public class TileMap : MonoBehaviour {
 		return tileTypes[ tiles[x,y] ].isWalkable;
 	}
 
-	public void GeneratePathTo(int x, int y) {
+	public void GeneratePathTo(int x, int y) 
+	{
 		// Clear out our unit's old path.
-		selectedUnit.GetComponent<Unit>().currentPath = null;
+		units[selectedUnit].GetComponent<Unit>().currentPath = null;
 
 		if( UnitCanEnterTile(x,y) == false ) {
 			// We probably clicked on a mountain or something, so just quit out.
@@ -178,8 +201,8 @@ public class TileMap : MonoBehaviour {
 		// Setup the "Q" -- the list of nodes we haven't checked yet.
 		List<Node> unvisited = new List<Node>();
 		
-		Node source = graph[ selectedUnit.GetComponent<Unit>().tileX, 
-		                     selectedUnit.GetComponent<Unit>().tileY ];
+		Node source = graph[ units[selectedUnit].GetComponent<Unit>().tileX, 
+		                     units[selectedUnit].GetComponent<Unit>().tileY ];
 		
 		Node target = graph[ x,y ];
 		
@@ -190,7 +213,8 @@ public class TileMap : MonoBehaviour {
 		// we don't know any better right now. Also, it's possible
 		// that some nodes CAN'T be reached from the source,
 		// which would make INFINITY a reasonable value
-		foreach(Node v in graph) {
+		foreach(Node v in graph) 
+		{
 			if(v != source) {
 				dist[v] = Mathf.Infinity;
 				prev[v] = null;
@@ -199,7 +223,8 @@ public class TileMap : MonoBehaviour {
 			unvisited.Add(v);
 		}
 
-		while(unvisited.Count > 0) {
+		while(unvisited.Count > 0) 
+		{
 			// "u" is going to be the unvisited node with the smallest distance.
 			Node u = null;
 
@@ -215,7 +240,8 @@ public class TileMap : MonoBehaviour {
 
 			unvisited.Remove(u);
 
-			foreach(Node v in u.neighbours) {
+			foreach(Node v in u.neighbours) 
+			{
 				//float alt = dist[u] + u.DistanceTo(v);
 				float alt = dist[u] + CostToEnterTile(u.x, u.y, v.x, v.y);
 				if( alt < dist[v] ) {
@@ -228,7 +254,8 @@ public class TileMap : MonoBehaviour {
 		// If we get there, the either we found the shortest route
 		// to our target, or there is no route at ALL to our target.
 
-		if(prev[target] == null) {
+		if(prev[target] == null) 
+		{
 			// No route between our target and the source
 			return;
 		}
@@ -238,7 +265,8 @@ public class TileMap : MonoBehaviour {
 		Node curr = target;
 
 		// Step through the "prev" chain and add it to our path
-		while(curr != null) {
+		while(curr != null) 
+		{
 			currentPath.Add(curr);
 			curr = prev[curr];
 		}
@@ -248,7 +276,7 @@ public class TileMap : MonoBehaviour {
 
 		currentPath.Reverse();
 
-		selectedUnit.GetComponent<Unit>().currentPath = currentPath;
+		units[selectedUnit].GetComponent<Unit>().currentPath = currentPath;
 	}
 
 }
